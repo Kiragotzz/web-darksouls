@@ -14,9 +14,9 @@ export default function Header() {
 
   return (
     <header className={styles.header}>
-      <nav className={styles.navContainer}>
-        {navItems.map((item) => (
-          <ul>
+      <nav>
+        <ul className={styles.navContainer}>
+          {navItems.map((item) => (
             <li key={item.path}>
               <Link
                 href={item.path}
@@ -27,8 +27,8 @@ export default function Header() {
                 {item.label}
               </Link>
             </li>
-          </ul>
-        ))}
+          ))}
+        </ul>
       </nav>
     </header>
   );
