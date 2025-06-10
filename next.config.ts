@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  output: "export",
   /* config options here */
   experimental: {
     //appDir: true, // Fundamental para App Router
