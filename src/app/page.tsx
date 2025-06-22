@@ -1,36 +1,22 @@
 "use client";
 import Select from "@/components/ui/Select";
 import { useState, useEffect } from "react";
+import ToolsServices from "@/services/tools.services";
 
 export default function Home() {
   const [selectedValue, setSelectedValue] = useState("");
-
-  const [options, setOptions] = useState<{ name: string; id: number }[]>([]); // Estado para armazenar as opções
+  const [options, setOptions] = useState<{ name: string; id: number, path: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [gameData, setGameData] = useState<any>(null); // Novo estado para os dados do jogo
+  const [fetchingGame, setFetchingGame] = useState(false); // Estado para controlar o loading da busca
 
   useEffect(() => {
-    // Função para buscar as opções da API
     const fetchOptions = async () => {
       try {
-        const response = await fetch(
-          "https://api-darksouls.onrender.com/options"
-        );
-
-        if (!response.ok) {
-          throw new Error("Erro ao buscar opções");
-        }
-
-        const data = await response.json();
-        setOptions(data);
-        console.log("Opções carregadas:", data);
-
-        // Seleciona o primeiro item por padrão se existirem opções
-        // if (data.length > 0) {
-        //   setSelectedValue(String(data[0].id));
-        // }
+        const options = await ToolsServices.listOptionsGames();
+        setOptions(options);
       } catch (error) {
         console.error("Erro na requisição:", error);
-        // Tratamento de erro (opcional)
       } finally {
         setLoading(false);
       }
@@ -38,6 +24,27 @@ export default function Home() {
 
     fetchOptions();
   }, []);
+
+  // Função para lidar com a seleção
+  const handleSelection = async (value: string) => {
+    setSelectedValue(value);
+    setFetchingGame(true);
+
+    try {
+      // Busca os dados do jogo usando o ID selecionado
+      const gameId = parseInt(value);
+      console.log("🚀 ~ gameId:", gameId);
+      console.log("🚀 ~ options[gameId]:", options[gameId])
+      const gameData = await ToolsServices.dataSelectedGame(options[gameId].path); // Você precisa implementar esta função no serviço
+      // const gameData = 'teste'; // Você precisa implementar esta função no serviço
+      setGameData(gameData);
+    } catch (error) {
+      console.error("Erro ao buscar dados do jogo:", error);
+      setGameData(null);
+    } finally {
+      setFetchingGame(false);
+    }
+  };
 
   return (
     <section className="container shadow p-6 max-w-4xl mx-auto mt-8 bg-white rounded-lg">
@@ -57,16 +64,55 @@ export default function Home() {
             label="Selecione um jogo"
             options={options.map((opt) => ({ ...opt, id: String(opt.id) }))}
             value={selectedValue}
-            onChange={setSelectedValue}
+            onChange={handleSelection} // Alterado para usar a nova função
             placeholder="Escolha uma opção"
           />
 
-          {selectedValue && (
+          {selectedValue && !fetchingGame && (
             <div className="mt-4 p-4 bg-blue-50 rounded-md">
               <p className="font-medium">Jogo selecionado:</p>
               <p className="text-lg">
                 {options.find((opt) => String(opt.id) === selectedValue)?.name}
               </p>
+            </div>
+          )}
+
+          {/* Exibição dos dados do jogo */}
+          {fetchingGame && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-md flex items-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              <span className="ml-3">Buscando dados do jogo...</span>
+            </div>
+          )}
+
+          {gameData && !fetchingGame && (
+            <div className="mt-6 p-4 bg-gray-50 rounded-md">
+              <h2 className="text-xl font-bold mb-3">Dados do Jogo</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {gameData.areas.map((area: any) => (
+                  <div key={area.id} className="p-3 border rounded-lg">
+                    <h3 className="font-semibold">{area.name}</h3>
+                    <p className="text-sm text-gray-600">{area.description}</p>
+                    <div className="mt-2">
+                      <h4 className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Conexões:
+                      </h4>
+                      <ul className="list-disc pl-5 text-sm">
+                        {area.connections.map((connId: string) => {
+                          const connectedArea = gameData.areas.find(
+                            (a: any) => a.id === connId
+                          );
+                          return (
+                            <li key={connId}>
+                              {connectedArea ? connectedArea.name : connId}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
